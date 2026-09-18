@@ -2,7 +2,7 @@
 title: "Title of the Paper in Title Case"
 author: |
   Your Name \
-  University of Maryland Global Campus \
+  Your University \
   COURSE 000 0000: Course Title \
   Professor Name
 date: "Month D, YYYY"
