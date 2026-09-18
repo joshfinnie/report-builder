@@ -1,0 +1,20 @@
+% APA 7 style preamble for pandoc -> LaTeX -> PDF.
+% Included via --include-in-header by build.sh.
+
+% URLs: break only after a slash, so "https://" never splits after the colon.
+\usepackage{xurl}
+\makeatletter\renewcommand*{\UrlBigBreaks}{\do\/}\makeatother
+
+% Page number top right, no rule.
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% Keep a block together when there is room, else start it on the next page.
+\usepackage{needspace}
+
+% Title page stands alone: no page number, body starts on page 2.
+\usepackage{etoolbox}
+\apptocmd{\maketitle}{\thispagestyle{empty}\newpage}{}{}
