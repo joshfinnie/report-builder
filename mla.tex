@@ -1,0 +1,23 @@
+% MLA 9th edition preamble for pandoc -> LaTeX -> PDF.
+% Included via --include-in-header by build.sh, along with a small generated
+% file that defines \mlaSurname from the paper's `lastname:` front-matter field.
+
+% URLs: break only after a slash, so "https://" never splits after the colon.
+\usepackage{xurl}
+\makeatletter\renewcommand*{\UrlBigBreaks}{\do\/}\makeatother
+
+% Running head: writer's last name and page number, top right, every page.
+\providecommand{\mlaSurname}{}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\mlaSurname\ \thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% MLA has no separate title page. The heading block and title are written
+% directly in the body (mla.lua formats them), so pandoc's own \maketitle
+% output is unwanted.
+\renewcommand{\maketitle}{}
+
+% Keep a block together when there is room, else start it on the next page.
+\usepackage{needspace}

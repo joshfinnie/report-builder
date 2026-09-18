@@ -15,6 +15,21 @@
 % Keep a block together when there is room, else start it on the next page.
 \usepackage{needspace}
 
-% Title page stands alone: no page number, body starts on page 2.
+% APA 7 student title page. Everything 12pt and double-spaced: title in bold,
+% three lines down, then one blank line, then author, affiliation, course,
+% instructor and due date on consecutive double-spaced lines. The title page is
+% page 1 and carries the page number.
 \usepackage{etoolbox}
-\apptocmd{\maketitle}{\thispagestyle{empty}\newpage}{}{}
+\makeatletter
+\renewcommand{\maketitle}{%
+  \thispagestyle{fancy}%
+  \begin{center}%
+    \setstretch{2}\selectfont
+    \vspace*{3\baselineskip}
+    {\normalsize\bfseries\@title\par}
+    \vspace{\baselineskip}
+    {\normalsize\@author\par}
+    {\normalsize\@date\par}
+  \end{center}%
+  \newpage}
+\makeatother

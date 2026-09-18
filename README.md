@@ -70,7 +70,9 @@ are tedious by hand:
 - Space is reserved before a table so its number and title are never stranded at the
   foot of a page.
 - References and each appendix start on a new page.
-- The title page stands alone and carries no page number; pages are numbered top right.
+- The title page follows the APA 7 student format: 12pt throughout, double-spaced,
+  bold title three lines down, then author, affiliation, course, instructor and due
+  date on consecutive lines. It is page 1 and pages are numbered top right.
 - URLs break only after a slash, so `https://` never splits after the colon.
 
 ## Controlling table column widths

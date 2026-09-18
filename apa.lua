@@ -46,7 +46,7 @@ end
 
 local function flush_left(block)
   if block.t == 'Para' then
-    table.insert(block.content, 1, pandoc.RawInline('latex', '\\noindent'))
+    table.insert(block.content, 1, pandoc.RawInline('latex', '\\noindent{}'))
   end
   return block
 end
