@@ -83,11 +83,8 @@ local function latex_escape(text)
 end
 
 -- mla.tex declares \mlaSurname empty; this defines it from the paper's front
--- matter. It is emitted as the first block of the body rather than via
--- header-includes, because build.sh passes mla.tex with --include-in-header,
--- which sets the header-includes template variable and shadows any metadata
--- field of the same name. \mlaSurname is only expanded when a page ships out,
--- so defining it ahead of the first paragraph covers every page.
+-- matter. preamble.lua splices it into header-includes after mla.tex, so the
+-- \providecommand is always in scope by the time this \renewcommand runs.
 local function surname_def(meta)
   local surname = meta.lastname and stringify(meta.lastname) or ''
   if surname == '' then
@@ -99,7 +96,9 @@ local function surname_def(meta)
 end
 
 function Pandoc(doc)
-  local out = { surname_def(doc.meta) }
+  doc.meta['rb-extra-preamble'] = pandoc.MetaBlocks({ surname_def(doc.meta) })
+
+  local out = {}
   local blocks = doc.blocks
   local i = 1
   local seen_heading = false

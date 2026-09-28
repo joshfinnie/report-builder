@@ -11,7 +11,11 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[R]{\mlaSurname\ \thepage}
+\ifdefined\rbPageNumberBottom
+  \fancyfoot[R]{\mlaSurname\ \thepage}
+\else
+  \fancyhead[R]{\mlaSurname\ \thepage}
+\fi
 \renewcommand{\headrulewidth}{0pt}
 
 % MLA has no separate title page. The heading block and title are written

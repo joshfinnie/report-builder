@@ -5,11 +5,16 @@
 \usepackage{xurl}
 \makeatletter\renewcommand*{\UrlBigBreaks}{\do\/}\makeatother
 
-% Page number top right, no rule.
+% Page number top right, no rule. APA 7 puts it in the header; a paper that needs
+% it in the footer sets `pagenumber: bottomright` in its front matter.
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[R]{\thepage}
+\ifdefined\rbPageNumberBottom
+  \fancyfoot[R]{\thepage}
+\else
+  \fancyhead[R]{\thepage}
+\fi
 \renewcommand{\headrulewidth}{0pt}
 
 % Keep a block together when there is room, else start it on the next page.
@@ -33,3 +38,6 @@
   \end{center}%
   \newpage}
 \makeatother
+
+% A paper that supplies its own title page sets `titlepage: false`.
+\ifdefined\rbNoTitlePage\renewcommand{\maketitle}{}\fi

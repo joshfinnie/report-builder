@@ -22,7 +22,7 @@ cp references.bib ~/papers/                # its bibliography
 ```
 
 ```
-build.sh [options] <paper.md> [apa|mla] [pdf|docx] [output]
+build.sh [options] <paper.md> [apa|mla] [pdf|docx|tex] [output]
 
   -b, --bib <file>       bibliography to cite from
       --no-bib           build without a bibliography
@@ -31,7 +31,9 @@ build.sh [options] <paper.md> [apa|mla] [pdf|docx] [output]
   -h, --help             show this message
 ```
 
-Style defaults to `apa` and format to `pdf`. For the bibliography, it checks:
+Style defaults to `apa` and format to `pdf`. The `tex` format writes out the LaTeX
+pandoc generates instead of rendering it, which is the quickest way to see what the
+preamble actually ended up as. For the bibliography, it checks:
 
 1. A file specified via `-b` / `--bib <file>`
 2. `<paper>.bib` next to the paper (matching the markdown file's basename)
@@ -57,6 +59,39 @@ Two limits are worth knowing. The flags apply to PDF output only; `.docx` takes 
 formatting from a Word reference document, so the build warns and ignores them there.
 And `mainfont` is a XeLaTeX/LuaLaTeX feature. Builds run through tectonic, which is
 XeTeX, so this works, but `--font-family` would silently do nothing under pdflatex.
+
+## Front matter options
+
+Beyond the usual pandoc fields, a paper can set these to override the style locally.
+Both default to what APA and MLA call for, so leaving them out changes nothing.
+
+| Field | Default | Effect |
+|---|---|---|
+| `pagenumber` | `topright` | `bottomright` moves the page number into the footer |
+| `titlepage` | `true` | `false` suppresses the template's title page so the paper can supply its own |
+
+```yaml
+---
+title: "Title of the Paper"
+pagenumber: bottomright
+titlepage: false
+---
+```
+
+For anything these do not cover, a paper's own `header-includes` is spliced into the
+preamble after the style file, so it wins:
+
+```yaml
+---
+header-includes: |
+  \fancyhf{}
+  \fancyfoot[C]{\thepage}
+---
+```
+
+This is the supported way to deviate from a style. Editing `apa.tex` or `mla.tex` to
+suit one paper is not: those files are shared by every paper you build, and APA
+defaults are meant to stay APA defaults.
 
 ## What you write
 
@@ -174,6 +209,7 @@ column:
 |---|---|
 | `build.sh` | One-command build; picks the style and engine and wires everything together |
 | `apa.lua` | Pandoc filter applying the APA layout rules above |
+| `preamble.lua` | Pandoc filter composing the preamble so a paper's `header-includes` survives |
 | `apa.tex` | LaTeX preamble: page numbering, title page, URL breaking |
 | `apa.csl` | APA 7th edition citation style, from the CSL project (CC BY-SA 3.0) |
 | `_template.md` | Skeleton APA paper with the YAML header and the table/figure patterns |
@@ -182,3 +218,4 @@ column:
 | `mla.csl` | MLA 9th edition citation style, from the CSL project (CC BY-SA 3.0) |
 | `_template_mla.md` | Skeleton MLA paper with the heading block and the table/figure patterns |
 | `references.bib` | Starter bibliography; keep a per-paper copy beside each paper |
+| `test.sh` | Regression tests for the preamble and the front-matter options |

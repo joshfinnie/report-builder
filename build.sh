@@ -4,6 +4,7 @@
 #   ./build.sh paper.md                -> paper.pdf, APA
 #   ./build.sh paper.md mla            -> paper.pdf, MLA
 #   ./build.sh paper.md mla docx       -> paper.docx, MLA
+#   ./build.sh paper.md apa tex        -> paper.tex, the LaTeX pandoc generates
 #   ./build.sh paper.md apa pdf out.pdf
 #   ./build.sh --bib custom.bib paper.md
 #   ./build.sh --no-bib paper.md
@@ -16,7 +17,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 
 usage() {
   cat <<'USAGE'
-usage: build.sh [options] <paper.md> [apa|mla] [pdf|docx] [output]
+usage: build.sh [options] <paper.md> [apa|mla] [pdf|docx|tex] [output]
 
 options:
   -b, --bib <file>       bibliography to cite from
@@ -154,9 +155,10 @@ args=(
   "$src"
   --from=markdown-implicit_figures
   --lua-filter="$here/$style.lua"
+  --lua-filter="$here/preamble.lua"
   --citeproc
   --csl="$here/$style.csl"
-  --include-in-header="$here/$style.tex"
+  --metadata=rb-style-preamble:"$here/$style.tex"
   --resource-path="$src_dir:$here"
   --output="$out"
 )
@@ -168,12 +170,13 @@ args=(
 
 case "$fmt" in
   pdf)  args+=(--pdf-engine=tectonic) ;;
+  tex)  args+=(--standalone) ;;
   docx)
     if [[ -n "$font_family" || -n "$font_size" ]]; then
       echo "warning: --font-family/--font-size affect PDF output only; ignored for docx" >&2
     fi
     ;;
-  *)    echo "unknown format: $fmt (use pdf or docx)" >&2; exit 1 ;;
+  *)    echo "unknown format: $fmt (use pdf, docx or tex)" >&2; exit 1 ;;
 esac
 
 pandoc "${args[@]}"
