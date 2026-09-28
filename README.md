@@ -18,11 +18,45 @@ cp references.bib ~/papers/                # its bibliography
 ./build.sh ~/papers/unit7.md               # -> unit7.pdf, APA
 ./build.sh ~/papers/essay1.md mla          # -> essay1.pdf, MLA
 ./build.sh ~/papers/essay1.md mla docx     # -> essay1.docx, MLA
+./build.sh --font-size 11 ~/papers/unit7.md  # -> unit7.pdf, 11pt
 ```
 
-`build.sh <paper.md> [apa|mla] [pdf|docx] [output]` defaults to `apa` and `pdf`. It
-uses `references.bib` next to the paper when there is one, otherwise the copy in this
-repo.
+```
+build.sh [options] <paper.md> [apa|mla] [pdf|docx] [output]
+
+  -b, --bib <file>       bibliography to cite from
+      --no-bib           build without a bibliography
+      --font-family <n>  override the paper's mainfont (PDF only)
+      --font-size <n>    override the paper's fontsize, e.g. 11 or 11pt (PDF only)
+  -h, --help             show this message
+```
+
+Style defaults to `apa` and format to `pdf`. For the bibliography, it checks:
+
+1. A file specified via `-b` / `--bib <file>`
+2. `<paper>.bib` next to the paper (matching the markdown file's basename)
+3. `references.bib` next to the paper
+
+If no bibliography is found, the build exits with an error unless `--no-bib` is passed.
+
+## Fonts
+
+Both templates set `fontsize: 12pt` and `mainfont: "Times New Roman"` in their front
+matter, which is what APA and MLA both expect. To build a one-off in something else,
+pass a flag:
+
+```sh
+./build.sh --font-family Georgia --font-size 11 ~/papers/essay1.md mla
+```
+
+A bare number is read as points, so `--font-size 11` and `--font-size 11pt` are the
+same. Both flags override the paper's front matter for that build only, leaving the
+file untouched. Change the front matter instead when you want it to stick.
+
+Two limits are worth knowing. The flags apply to PDF output only; `.docx` takes its
+formatting from a Word reference document, so the build warns and ignores them there.
+And `mainfont` is a XeLaTeX/LuaLaTeX feature. Builds run through tectonic, which is
+XeTeX, so this works, but `--font-family` would silently do nothing under pdflatex.
 
 ## What you write
 
@@ -89,7 +123,9 @@ MLA has no title page: the writer's heading (name, instructor, course, date) is 
 first paragraph of the document, and the title is a level-1 heading
 (`# Title of the Paper`) right after it. `mla.lua` formats both automatically: the
 heading flush left, the title centered and unstyled. The paper's front matter also
-needs a `lastname:` field for the "Lastname #" running head MLA requires on every page.
+needs a `lastname:` field for the "Lastname #" running head MLA requires on every page;
+`mla.lua` reads it and defines the running head from it, and stops the build with a
+clear message if the field is missing.
 
 ## What is handled for you
 
@@ -141,7 +177,7 @@ column:
 | `apa.tex` | LaTeX preamble: page numbering, title page, URL breaking |
 | `apa.csl` | APA 7th edition citation style, from the CSL project (CC BY-SA 3.0) |
 | `_template.md` | Skeleton APA paper with the YAML header and the table/figure patterns |
-| `mla.lua` | Pandoc filter applying the MLA layout rules above |
+| `mla.lua` | Pandoc filter applying the MLA layout rules above, plus the running-head surname |
 | `mla.tex` | LaTeX preamble: running head, no title page, URL breaking |
 | `mla.csl` | MLA 9th edition citation style, from the CSL project (CC BY-SA 3.0) |
 | `_template_mla.md` | Skeleton MLA paper with the heading block and the table/figure patterns |

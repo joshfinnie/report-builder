@@ -12,6 +12,8 @@ MLA 9 layout rules for pandoc, applied automatically so the markdown stays plain
      table body, while the number, title and any source note outside it
      stay double-spaced.
   5. "Works Cited" and Appendix sections start on a new page.
+  6. The `lastname:` front-matter field is pushed into the preamble as
+     \mlaSurname, which mla.tex uses for the "Lastname #" running head.
 
 Nothing here depends on a particular paper; build.sh passes it to every run.
 --]]
@@ -68,8 +70,36 @@ local function centered_title(header)
   return para
 end
 
+-- LaTeX specials that could appear in a surname, e.g. O'Brien-Smith is fine but
+-- a stray & or _ would otherwise break the preamble.
+local function latex_escape(text)
+  return (text:gsub('[\\{}#$%%&_~^]', {
+    ['\\'] = '\\textbackslash{}',
+    ['{'] = '\\{', ['}'] = '\\}',
+    ['#'] = '\\#', ['$'] = '\\$', ['%'] = '\\%', ['&'] = '\\&',
+    ['_'] = '\\_', ['~'] = '\\textasciitilde{}',
+    ['^'] = '\\textasciicircum{}',
+  }))
+end
+
+-- mla.tex declares \mlaSurname empty; this defines it from the paper's front
+-- matter. It is emitted as the first block of the body rather than via
+-- header-includes, because build.sh passes mla.tex with --include-in-header,
+-- which sets the header-includes template variable and shadows any metadata
+-- field of the same name. \mlaSurname is only expanded when a page ships out,
+-- so defining it ahead of the first paragraph covers every page.
+local function surname_def(meta)
+  local surname = meta.lastname and stringify(meta.lastname) or ''
+  if surname == '' then
+    io.stderr:write(
+      "add 'lastname: \"Surname\"' to the paper's front matter for the MLA header\n")
+    os.exit(1)
+  end
+  return raw('\\renewcommand{\\mlaSurname}{' .. latex_escape(surname) .. '}')
+end
+
 function Pandoc(doc)
-  local out = {}
+  local out = { surname_def(doc.meta) }
   local blocks = doc.blocks
   local i = 1
   local seen_heading = false
@@ -88,17 +118,14 @@ function Pandoc(doc)
       i = i + 1
 
     elseif is_image_para(block) then
-      -- Collect the image and, if present, its "Fig. N." caption below it.
-      local group = { flush_left(block) }
-      local j = i + 1
-      if blocks[j] and is_fig_caption(blocks[j]) then
-        table.insert(group, flush_left(blocks[j]))
-        j = j + 1
+      -- Reserve room so the image and its caption below stay together.
+      table.insert(out, raw('\\needspace{6\\baselineskip}'))
+      table.insert(out, flush_left(block))
+      i = i + 1
+      if blocks[i] and is_fig_caption(blocks[i]) then
+        table.insert(out, flush_left(blocks[i]))
+        i = i + 1
       end
-      table.insert(out, raw('\\noindent\\begin{minipage}{\\linewidth}'))
-      for _, b in ipairs(group) do table.insert(out, b) end
-      table.insert(out, raw('\\end{minipage}'))
-      i = j
 
     elseif kind == 'Table' then
       -- Reserve room so the number, title and the start of the table stay together.

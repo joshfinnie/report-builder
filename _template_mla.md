@@ -16,8 +16,8 @@ Month D, YYYY
 # Title of the Paper in Title Case
 
 Body paragraphs are ordinary markdown and keep their first-line indent. Cite with
-pandoc keys from `references.bib`: parenthetical [@key] renders as (Author 1), and
-narrative @key renders as Author (1).
+pandoc keys from `references.bib`: [@chawla2002, 321] for a parenthetical citation,
+@chawla2002 for a narrative one. Either way the entry joins the Works Cited below.
 
 ## Some Section
 

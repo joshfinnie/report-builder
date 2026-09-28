@@ -16,8 +16,8 @@ indent: true
 ## Introduction
 
 Body paragraphs are ordinary markdown and keep their first-line indent. Cite with
-pandoc keys from `references.bib`: parenthetical [@key] renders as (Author, Year),
-and narrative @key renders as Author (Year).
+pandoc keys from `references.bib`: [@chawla2002] for a parenthetical citation,
+@chawla2002 for a narrative one. Either way the entry joins the reference list below.
 
 ## Some Section
 

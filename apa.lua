@@ -61,23 +61,15 @@ function Pandoc(doc)
     local kind = label_kind(block)
 
     if kind == 'Figure' then
-      -- Collect the label, an optional italic title, and the image.
-      local group = { flush_left(block) }
-      local j = i + 1
-      while j <= #blocks do
-        local nxt = blocks[j]
-        if is_emph_para(nxt) or is_image_para(nxt) then
-          table.insert(group, flush_left(nxt))
-          j = j + 1
-          if is_image_para(nxt) then break end
-        else
-          break
-        end
+      -- Reserve room so the number, title and the image stay together.
+      table.insert(out, raw('\\needspace{6\\baselineskip}'))
+      table.insert(out, flush_left(block))
+      i = i + 1
+      -- The italic title belongs with the label, flush left as well.
+      if blocks[i] and is_emph_para(blocks[i]) then
+        table.insert(out, flush_left(blocks[i]))
+        i = i + 1
       end
-      table.insert(out, raw('\\noindent\\begin{minipage}{\\linewidth}'))
-      for _, b in ipairs(group) do table.insert(out, b) end
-      table.insert(out, raw('\\end{minipage}'))
-      i = j
 
     elseif kind == 'Table' then
       -- Reserve room so the number, title and the start of the table stay together.
