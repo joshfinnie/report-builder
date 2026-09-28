@@ -1,7 +1,7 @@
 # report-builder
 
 Build APA 7 or MLA 9 formatted PDFs from plain markdown with pandoc, tectonic and a
-BibTeX bibliography. Write the paper, run one command, get a submission-ready PDF.
+BibTeX bibliography. Write the document, run one command, get a correctly formatted PDF.
 
 ## Setup
 
@@ -12,13 +12,13 @@ brew install pandoc tectonic
 ## Use
 
 ```sh
-cp _template.md ~/papers/unit7.md          # start an APA paper
-cp _template_mla.md ~/papers/essay1.md     # ...or an MLA paper
-cp references.bib ~/papers/                # its bibliography
-./build.sh ~/papers/unit7.md               # -> unit7.pdf, APA
-./build.sh ~/papers/essay1.md mla          # -> essay1.pdf, MLA
-./build.sh ~/papers/essay1.md mla docx     # -> essay1.docx, MLA
-./build.sh --font-size 11 ~/papers/unit7.md  # -> unit7.pdf, 11pt
+cp _template.md ~/docs/paper.md            # start an APA paper
+cp _template_mla.md ~/docs/essay.md        # ...or an MLA paper
+cp references.bib ~/docs/                  # its bibliography
+./build.sh ~/docs/paper.md                 # -> paper.pdf, APA
+./build.sh ~/docs/essay.md mla             # -> essay.pdf, MLA
+./build.sh ~/docs/essay.md mla docx        # -> essay.docx, MLA
+./build.sh --font-size 11 ~/docs/paper.md  # -> paper.pdf, 11pt
 ```
 
 ```
@@ -48,7 +48,7 @@ matter, which is what APA and MLA both expect. To build a one-off in something e
 pass a flag:
 
 ```sh
-./build.sh --font-family Georgia --font-size 11 ~/papers/essay1.md mla
+./build.sh --font-family Georgia --font-size 11 ~/docs/essay.md mla
 ```
 
 A bare number is read as points, so `--font-size 11` and `--font-size 11pt` are the
@@ -68,15 +68,23 @@ Both default to what APA and MLA call for, so leaving them out changes nothing.
 | Field | Default | Effect |
 |---|---|---|
 | `pagenumber` | `topright` | `bottomright` moves the page number into the footer |
-| `titlepage` | `true` | `false` suppresses the template's title page so the paper can supply its own |
+| `titlepage` | `student` | `professional` swaps in the professional title page; `false` suppresses it entirely |
+| `shorttitle` | the title | The running head the professional title page carries, capitalised and cut to 50 characters |
 
 ```yaml
 ---
 title: "Title of the Paper"
 pagenumber: bottomright
-titlepage: false
+titlepage: professional
+shorttitle: "Short Running Head"
 ---
 ```
+
+APA 7 defines two title pages and this builds either. The student format is the
+default: title, then an author block of author, affiliation, course and instructor,
+then the due date. The professional format drops the due date and adds a running head.
+Which lines the author block carries is up to the paper, since it is just the `author`
+field. `titlepage: true` is a synonym for `student`.
 
 For anything these do not cover, a paper's own `header-includes` is spliced into the
 preamble after the style file, so it wins:
@@ -154,7 +162,8 @@ Source: Anything the columns do not say for themselves, or drop this line entire
 **Fig. 1.** Caption text describing the figure.
 ```
 
-MLA has no title page: the writer's heading (name, instructor, course, date) is the
+MLA has no title page. The writer's heading that MLA 9 specifies (name, instructor,
+course, date) is the
 first paragraph of the document, and the title is a level-1 heading
 (`# Title of the Paper`) right after it. `mla.lua` formats both automatically: the
 heading flush left, the title centered and unstyled. The paper's front matter also
@@ -182,9 +191,10 @@ APA only:
 
 - Table and figure numbers, their italic titles and `*Note.*` lines are flush left,
   while body paragraphs keep their first-line indent.
-- The title page follows the APA 7 student format: 12pt throughout, double-spaced,
-  bold title three lines down, then author, affiliation, course, instructor and due
-  date on consecutive lines. It is page 1 and pages are numbered top right.
+- The title page follows the APA 7 student format by default: 12pt throughout,
+  double-spaced, bold title three lines down, then the author block, then the due
+  date. `titlepage: professional` drops the due date and adds a running head. It is
+  page 1 either way and pages are numbered top right.
 
 MLA only:
 

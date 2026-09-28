@@ -1,5 +1,5 @@
 % APA 7 style preamble for pandoc -> LaTeX -> PDF.
-% Included via --include-in-header by build.sh.
+% preamble.lua splices this into header-includes ahead of the paper's own.
 
 % URLs: break only after a slash, so "https://" never splits after the colon.
 \usepackage{xurl}
@@ -17,26 +17,56 @@
 \fi
 \renewcommand{\headrulewidth}{0pt}
 
+% The professional title page also carries a running head: the short title in
+% capitals, flush left. preamble.lua fills \rbShortTitle from the paper's
+% `shorttitle:` field, or from its title when there is none.
+\providecommand{\rbShortTitle}{}
+\ifdefined\rbProfessionalTitlePage
+  \fancyhead[L]{\rbShortTitle}
+\fi
+
+% Double and single spacing. Pandoc's template loads setspace only when the
+% paper sets `linestretch`, but the title page and the table bodies need it
+% either way, so the style asks for it itself. A second load is a no-op.
+\usepackage{setspace}
+
 % Keep a block together when there is room, else start it on the next page.
 \usepackage{needspace}
 
-% APA 7 student title page. Everything 12pt and double-spaced: title in bold,
-% three lines down, then one blank line, then author, affiliation, course,
-% instructor and due date on consecutive double-spaced lines. The title page is
-% page 1 and carries the page number.
+% APA 7 title page. Everything 12pt and double-spaced: title in bold three lines
+% down, then one blank line, then the author block. The title page is page 1 and
+% carries the page number.
+%
+% The student format (the default) closes with the due date, and its author
+% block runs author, affiliation, course and instructor. The professional
+% format, selected with `titlepage: professional`, drops the due date and adds
+% the running head above.
 \usepackage{etoolbox}
 \makeatletter
-\renewcommand{\maketitle}{%
-  \thispagestyle{fancy}%
-  \begin{center}%
-    \setstretch{2}\selectfont
-    \vspace*{3\baselineskip}
-    {\normalsize\bfseries\@title\par}
-    \vspace{\baselineskip}
-    {\normalsize\@author\par}
-    {\normalsize\@date\par}
-  \end{center}%
-  \newpage}
+\ifdefined\rbProfessionalTitlePage
+  \renewcommand{\maketitle}{%
+    \thispagestyle{fancy}%
+    \begin{center}%
+      \setstretch{2}\selectfont
+      \vspace*{3\baselineskip}
+      {\normalsize\bfseries\@title\par}
+      \vspace{\baselineskip}
+      {\normalsize\@author\par}
+    \end{center}%
+    \newpage}
+\else
+  \renewcommand{\maketitle}{%
+    \thispagestyle{fancy}%
+    \begin{center}%
+      \setstretch{2}\selectfont
+      \vspace*{3\baselineskip}
+      {\normalsize\bfseries\@title\par}
+      \vspace{\baselineskip}
+      {\normalsize\@author\par}
+      {\normalsize\@date\par}
+    \end{center}%
+    \newpage}
+\fi
 \makeatother
 
 % A paper that supplies its own title page sets `titlepage: false`.

@@ -107,10 +107,44 @@ build tp_default apa
 assert_grep "renders by default" "$work/tp_default.tex" '\\def\\rbNoTitlePage' 0
 assert_grep "maketitle is called by default" "$work/tp_default.tex" '^\\maketitle$' 1
 
+paper tp_student "titlepage: student"
+build tp_student apa
+assert_grep "student is explicit but equivalent" "$work/tp_student.tex" '\\def\\rb' 0
+
+paper tp_true "titlepage: true"
+build tp_true apa
+assert_grep "true is a synonym for student" "$work/tp_true.tex" '\\def\\rb' 0
+
 paper tp_off "titlepage: false"
 build tp_off apa
 assert_grep "false defines the switch" "$work/tp_off.tex" '\\def\\rbNoTitlePage\{\}' 1
 assert_grep "false blanks maketitle" "$work/tp_off.tex" '\\ifdefined\\rbNoTitlePage\\renewcommand\{\\maketitle\}\{\}' 1
+
+paper tp_pro "titlepage: professional"
+build tp_pro apa
+assert_grep "professional defines the switch" "$work/tp_pro.tex" '\\def\\rbProfessionalTitlePage\{\}' 1
+assert_grep "professional sets a running head" "$work/tp_pro.tex" '\\fancyhead\[L\]\{\\rbShortTitle\}' 1
+assert_grep "the short title falls back to the title" "$work/tp_pro.tex" \
+  '\\def\\rbShortTitle\{T\}' 1
+
+paper tp_short "titlepage: professional
+shorttitle: \"A Shorter One\""
+build tp_short apa
+assert_grep "shorttitle wins and is capitalised" "$work/tp_short.tex" \
+  '\\def\\rbShortTitle\{A SHORTER ONE\}' 1
+
+paper tp_long "titlepage: professional
+shorttitle: \"$(printf 'x%.0s' {1..70})\""
+build tp_long apa
+assert_grep "a long short title is cut to 50 characters" "$work/tp_long.tex" \
+  "\\\\def\\\\rbShortTitle\\{X{50}\\}" 1
+
+paper tp_bad "titlepage: sideways"
+if build tp_bad apa; then
+  report fail "an unknown titlepage value fails the build"
+else
+  report pass "an unknown titlepage value fails the build"
+fi
 
 echo "mla"
 
@@ -142,6 +176,40 @@ paper smoke_mla "" "Heading
 
 Body."
 build smoke_mla mla && report pass "mla builds" || report fail "mla builds"
+
+# The assertions above stop at the generated LaTeX, which cannot catch a
+# preamble that is well formed but does not compile, such as a macro used by
+# one style but declared only by another. These render for real.
+echo "pdf smoke (runs tectonic, slower)"
+
+render() {
+  "$here/build.sh" --no-bib "$work/$1.md" "$2" pdf "$work/$1.pdf" >/dev/null 2>&1
+}
+
+mla_body="Heading
+
+# Title
+
+Body."
+
+for combo in "apa:" "apa:titlepage: professional" "apa:titlepage: false" \
+             "apa:pagenumber: bottomright"; do
+  style="${combo%%:*}"
+  extra="${combo#*:}"
+  name="pdf_apa_$(echo "${extra:-default}" | tr -c 'a-z0-9' '_')"
+  paper "$name" "$extra"
+  render "$name" "$style" \
+    && report pass "apa renders with [${extra:-defaults}]" \
+    || report fail "apa renders with [${extra:-defaults}]"
+done
+
+for extra in "" "titlepage: professional" "pagenumber: bottomright"; do
+  name="pdf_mla_$(echo "${extra:-default}" | tr -c 'a-z0-9' '_')"
+  paper "$name" "$extra" "$mla_body"
+  render "$name" mla \
+    && report pass "mla renders with [${extra:-defaults}]" \
+    || report fail "mla renders with [${extra:-defaults}]"
+done
 
 echo
 printf '%d passed, %d failed\n' "$pass" "$fail"

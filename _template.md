@@ -1,10 +1,8 @@
 ---
 title: "Title of the Paper in Title Case"
 author: |
-  Your Name \
-  Your University \
-  COURSE 000 0000: Course Title \
-  Professor Name
+  Author Name \
+  Affiliation
 date: "Month D, YYYY"
 geometry: margin=1in
 fontsize: 12pt

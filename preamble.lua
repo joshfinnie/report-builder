@@ -16,8 +16,10 @@ later entries win:
 
 Options a paper may set in its front matter:
 
-  pagenumber: topright | bottomright   (default topright)
-  titlepage:  true | false             (default true)
+  pagenumber: topright | bottomright              (default topright)
+  titlepage:  student | professional | false      (default student; true is
+                                                   a synonym for student)
+  shorttitle: the running head APA 7's professional title page carries
 
 Run this filter after the style filter, so `rb-extra-preamble` is already set.
 --]]
@@ -32,6 +34,12 @@ local SWITCHES = {
   pagenumber = {
     topright = false,
     bottomright = '\\rbPageNumberBottom',
+  },
+  titlepage = {
+    ['true'] = false,
+    student = false,
+    professional = '\\rbProfessionalTitlePage',
+    ['false'] = '\\rbNoTitlePage',
   },
 }
 
@@ -48,13 +56,9 @@ local function read_file(path)
   return body
 end
 
-local function as_bool(value, default)
-  if value == nil then return default end
-  if type(value) == 'boolean' then return value end
-  local text = stringify(value):lower()
-  if text == 'true' or text == 'yes' then return true end
-  if text == 'false' or text == 'no' then return false end
-  fail('expected true or false, got: ' .. text)
+local function as_text(value)
+  if type(value) == 'boolean' then return tostring(value) end
+  return stringify(value)
 end
 
 -- Turn a metadata value into the blocks it contributes to the preamble.
@@ -81,11 +85,38 @@ local function to_blocks(value)
   return { pandoc.RawBlock('latex', stringify(value)) }
 end
 
+-- LaTeX specials that could appear in a title or short title.
+local function latex_escape(text)
+  return (text:gsub('[\\{}#$%%&_~^]', {
+    ['\\'] = '\\textbackslash{}',
+    ['{'] = '\\{', ['}'] = '\\}',
+    ['#'] = '\\#', ['$'] = '\\$', ['%'] = '\\%', ['&'] = '\\&',
+    ['_'] = '\\_', ['~'] = '\\textasciitilde{}',
+    ['^'] = '\\textasciicircum{}',
+  }))
+end
+
+-- APA 7's professional title page carries a running head: the short title in
+-- capitals, flush left. It comes from `shorttitle:` when the paper sets one and
+-- from the title otherwise. APA caps it at 50 characters.
+--
+-- Emitted only for that title page, and with \def so it stands on its own: a
+-- style file that never uses a running head does not have to declare the macro.
+local function short_title_def(meta)
+  if meta.titlepage == nil then return nil end
+  if as_text(meta.titlepage):lower() ~= 'professional' then return nil end
+  local source = meta.shorttitle or meta.title
+  if source == nil then return nil end
+  local text = as_text(source):upper()
+  if #text > 50 then text = text:sub(1, 50) end
+  return pandoc.RawBlock('latex', '\\def\\rbShortTitle{' .. latex_escape(text) .. '}')
+end
+
 local function switch_defs(meta)
   local defs = {}
   for option, choices in pairs(SWITCHES) do
     if meta[option] ~= nil then
-      local choice = stringify(meta[option]):lower()
+      local choice = as_text(meta[option]):lower()
       local macro = choices[choice]
       if macro == nil then
         local names = {}
@@ -96,9 +127,6 @@ local function switch_defs(meta)
       end
       if macro then table.insert(defs, '\\def' .. macro .. '{}') end
     end
-  end
-  if not as_bool(meta.titlepage, true) then
-    table.insert(defs, '\\def\\rbNoTitlePage{}')
   end
   table.sort(defs)
   return defs
@@ -114,6 +142,8 @@ function Meta(meta)
     table.insert(parts, pandoc.RawBlock('latex', table.concat(defs, '\n')))
   end
   table.insert(parts, pandoc.RawBlock('latex', read_file(stringify(path))))
+  local short = short_title_def(meta)
+  if short then table.insert(parts, short) end
   for _, block in ipairs(to_blocks(meta['rb-extra-preamble'])) do
     table.insert(parts, block)
   end

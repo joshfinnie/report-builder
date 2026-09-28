@@ -8,9 +8,9 @@ linestretch: 2
 indent: true
 ---
 
-Your Name\
-Professor Name\
-COURSE 000: Course Title\
+Author Name\
+Instructor Name\
+Course Title\
 Month D, YYYY
 
 # Title of the Paper in Title Case

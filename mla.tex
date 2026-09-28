@@ -23,5 +23,10 @@
 % output is unwanted.
 \renewcommand{\maketitle}{}
 
+% Double and single spacing. Pandoc's template loads setspace only when the
+% paper sets `linestretch`, but the title page and the table bodies need it
+% either way, so the style asks for it itself. A second load is a no-op.
+\usepackage{setspace}
+
 % Keep a block together when there is room, else start it on the next page.
 \usepackage{needspace}
