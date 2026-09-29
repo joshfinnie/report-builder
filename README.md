@@ -188,6 +188,10 @@ Shared:
   cannot separate them.
 - References/Works Cited and each appendix start on a new page.
 - URLs break only after a slash, so `https://` never splits after the colon.
+- Code blocks wrap instead of running off the page, and a wrapped line is marked
+  with a continuation arrow so it does not read as a new one. Each block sits on a
+  light panel that breaks across pages when the listing is long. Syntax highlighting
+  is pandoc's default; `--highlight-style` on the pandoc call picks another.
 
 APA only:
 

@@ -30,6 +30,26 @@
 % either way, so the style asks for it itself. A second load is a no-op.
 \usepackage{setspace}
 
+% Code blocks. Pandoc sets them with fancyvrb, whose Verbatim does not wrap, so
+% a long line runs straight off the page. fvextra adds line breaking and marks
+% each wrapped line with a continuation arrow, so it is not read as a new line.
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{%
+  commandchars=\\\{\},breaklines,breakanywhere,fontsize=\small}
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,fontsize=\small}
+
+% A light panel behind each block, so code reads as distinct from prose.
+% snugshade breaks across pages, so a listing longer than a page still flows
+% rather than overrunning. Pandoc defines Shaded only when the document
+% actually contains highlighted code, hence the guard.
+\usepackage{framed}
+\definecolor{shadecolor}{gray}{0.96}
+\makeatletter
+\@ifundefined{Shaded}
+  {\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}}
+  {\renewenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}}
+\makeatother
+
 % Keep a block together when there is room, else start it on the next page.
 \usepackage{needspace}
 

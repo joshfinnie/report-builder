@@ -235,6 +235,53 @@ render tbl_long apa \
   && report pass "a table longer than a page still renders" \
   || report fail "a table longer than a page still renders"
 
+echo "code blocks"
+
+fence='```'
+code_body="Prose above.
+
+${fence}python
+import numpy as np
+def f(a_very_long_parameter_name, another_long_one, third_one, fourth_one, fifth=0.75):
+    return np.zeros([9, 9])
+${fence}"
+
+paper code_apa "" "$code_body"
+build code_apa apa
+assert_grep "fvextra is loaded" "$work/code_apa.tex" '\\usepackage\{fvextra\}' 1
+# Both the highlighted and the plain verbatim environment wrap.
+assert_grep "long lines are set to wrap" "$work/code_apa.tex" 'breaklines' 2
+assert_grep "the shaded panel has a colour" "$work/code_apa.tex" \
+  '\\definecolor\{shadecolor\}' 1
+
+render code_apa apa \
+  && report pass "apa renders a code block" \
+  || report fail "apa renders a code block"
+
+paper code_mla "" "Heading
+
+# Title
+
+$code_body"
+render code_mla mla \
+  && report pass "mla renders a code block" \
+  || report fail "mla renders a code block"
+
+# Pandoc defines Shaded only when the document has highlighted code, so a paper
+# with none at all must not trip the redefinition.
+paper code_none "" "Prose only, no code anywhere."
+render code_none apa \
+  && report pass "apa renders with no code block at all" \
+  || report fail "apa renders with no code block at all"
+paper code_none_mla "" "Heading
+
+# Title
+
+Prose only."
+render code_none_mla mla \
+  && report pass "mla renders with no code block at all" \
+  || report fail "mla renders with no code block at all"
+
 echo "styles still build"
 
 paper smoke_apa ""
