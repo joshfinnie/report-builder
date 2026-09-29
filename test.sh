@@ -66,6 +66,10 @@ assert_before() {
   fi
 }
 
+render() {
+  "$here/build.sh" --no-bib "$work/$1.md" "$2" pdf "$work/$1.pdf" >/dev/null 2>&1
+}
+
 echo "preamble composition"
 
 paper hi "header-includes: |
@@ -166,6 +170,71 @@ else
   report pass "a missing lastname fails the build"
 fi
 
+echo "tables"
+
+table_rows="| Iterations | Correct route |
+|---|---|
+| 50 | 65/200 |
+| 100 | 148/200 |
+| 200 | 199/200 |
+| 1,000 | 200/200 |"
+
+paper tbl_bare "" "Body.
+
+$table_rows"
+build tbl_bare apa
+# 1 header row + 4 body rows + 3 rules, and no label above it.
+assert_grep "an unlabelled table reserves its own height" "$work/tbl_bare.tex" \
+  '\\rbTableNeed\{8\}\{0\}' 1
+
+paper tbl_label "" "Body.
+
+**Table 1**
+
+*A Short Table*
+
+$table_rows
+
+*Note.* Something."
+build tbl_label apa
+assert_grep "a labelled table reserves the label and title too" "$work/tbl_label.tex" \
+  '\\rbTableNeed\{8\}\{2\}' 1
+
+# The macro is defined once in the preamble; every other hit is a use.
+uses="$(grep -o '\\rbTableNeed{[0-9]' "$work/tbl_label.tex" | wc -l | tr -d ' ')"
+if [[ "$uses" == "1" ]]; then
+  report pass "a labelled table reserves space exactly once"
+else
+  report fail "a labelled table reserves space exactly once" "got $uses reservations"
+fi
+
+paper tbl_mla "" "Heading
+
+# Title
+
+**Table 1**
+
+A Short Table
+
+$table_rows"
+build tbl_mla mla
+assert_grep "mla reserves the same way" "$work/tbl_mla.tex" '\\rbTableNeed\{8\}\{2\}' 1
+
+# A table taller than a page has to stay breakable, or its rows fall off the
+# end. This one is far longer than a page and must still render.
+long_rows="| N | Value |
+|---|---|"
+for n in $(seq 1 60); do
+  long_rows="$long_rows
+| $n | row $n |"
+done
+paper tbl_long "" "Body.
+
+$long_rows"
+render tbl_long apa \
+  && report pass "a table longer than a page still renders" \
+  || report fail "a table longer than a page still renders"
+
 echo "styles still build"
 
 paper smoke_apa ""
@@ -181,10 +250,6 @@ build smoke_mla mla && report pass "mla builds" || report fail "mla builds"
 # preamble that is well formed but does not compile, such as a macro used by
 # one style but declared only by another. These render for real.
 echo "pdf smoke (runs tectonic, slower)"
-
-render() {
-  "$here/build.sh" --no-bib "$work/$1.md" "$2" pdf "$work/$1.pdf" >/dev/null 2>&1
-}
 
 mla_body="Heading
 

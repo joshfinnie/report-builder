@@ -33,6 +33,22 @@
 % Keep a block together when there is room, else start it on the next page.
 \usepackage{needspace}
 
+% Reserve room for a table so it is not split across a page break. #1 is the
+% number of lines the table itself occupies (rows plus its rules), #2 the
+% number of double-spaced body lines above it (its label and title, or 0 when
+% it has none). The table is set \small and single-spaced, so its line height
+% is measured inside that group rather than guessed from the body's.
+%
+% A table taller than a page still splits, and longtable repeats its header
+% row, which is what APA and MLA both ask for.
+\newlength{\rbBodyLine}
+\newcommand{\rbTableNeed}[2]{%
+  \setlength{\rbBodyLine}{\baselineskip}%
+  \begingroup
+    \small\singlespacing
+    \needspace{\dimexpr #2\rbBodyLine + #1\baselineskip\relax}%
+  \endgroup}
+
 % APA 7 title page. Everything 12pt and double-spaced: title in bold three lines
 % down, then one blank line, then the author block. The title page is page 1 and
 % carries the page number.

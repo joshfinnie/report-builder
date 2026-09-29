@@ -180,8 +180,10 @@ Shared:
 
 - Table bodies are set small and single-spaced, which both styles allow, while the
   label, title and note/source line stay double-spaced.
-- Space is reserved before a table so its label and title are never stranded at the
-  foot of a page.
+- Space is reserved before a table for the whole block: its label, its title and
+  every row. A table that fits on a page is never split across one, whether or not
+  it carries a label. A table taller than a page still breaks, and its header row
+  repeats on each continuation, which is what both styles ask for.
 - A figure's label, title/caption and image are wrapped together so a page break
   cannot separate them.
 - References/Works Cited and each appendix start on a new page.

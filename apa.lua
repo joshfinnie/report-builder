@@ -51,10 +51,32 @@ local function flush_left(block)
   return block
 end
 
+-- How many lines a table occupies: every header, body and footer row, plus its
+-- three rules. Cells that wrap onto a second line make this an underestimate,
+-- so a wrapped table can still split; it just splits far less often.
+local function table_lines(tbl)
+  local rows = #tbl.head.rows
+  for _, body in ipairs(tbl.bodies) do
+    rows = rows + #body.head + #body.body
+  end
+  rows = rows + #tbl.foot.rows
+  return rows + 3
+end
+
+-- Look ahead for the table a "Table 1" label introduces, so the space for the
+-- whole block can be reserved before the label is emitted.
+local function next_table(blocks, i)
+  for j = i, math.min(i + 3, #blocks) do
+    if blocks[j].t == 'Table' then return blocks[j] end
+  end
+  return nil
+end
+
 function Pandoc(doc)
   local out = {}
   local i = 1
   local blocks = doc.blocks
+  local reserved = nil
 
   while i <= #blocks do
     local block = blocks[i]
@@ -72,8 +94,13 @@ function Pandoc(doc)
       end
 
     elseif kind == 'Table' then
-      -- Reserve room so the number, title and the start of the table stay together.
-      table.insert(out, raw('\\needspace{6\\baselineskip}'))
+      -- Reserve room for the number, the title and the whole table at once, so
+      -- none of the three is stranded at the foot of a page.
+      local tbl = next_table(blocks, i + 1)
+      if tbl then
+        table.insert(out, raw('\\rbTableNeed{' .. table_lines(tbl) .. '}{2}'))
+        reserved = tbl
+      end
       table.insert(out, flush_left(block))
       i = i + 1
       -- The italic title belongs with the label, flush left as well.
@@ -87,6 +114,9 @@ function Pandoc(doc)
       i = i + 1
 
     elseif block.t == 'Table' then
+      if reserved ~= block then
+        table.insert(out, raw('\\rbTableNeed{' .. table_lines(block) .. '}{0}'))
+      end
       table.insert(out, raw('\\begingroup\\small\\singlespacing\\setlength{\\tabcolsep}{4pt}'))
       table.insert(out, block)
       table.insert(out, raw('\\endgroup'))
