@@ -8,6 +8,7 @@
 #   ./build.sh paper.md apa pdf out.pdf
 #   ./build.sh --bib custom.bib paper.md
 #   ./build.sh --no-bib paper.md
+#   ./build.sh --font georgia paper.md
 #   ./build.sh --font-family Georgia --font-size 11 paper.md
 #
 # Looks for <paper>.bib next to the paper, falling back to references.bib.
@@ -22,8 +23,11 @@ usage: build.sh [options] <paper.md> [apa|mla] [pdf|docx|tex] [output]
 options:
   -b, --bib <file>       bibliography to cite from
       --no-bib           build without a bibliography
-      --font-family <n>  override the paper's mainfont (PDF only)
-      --font-size <n>    override the paper's fontsize, e.g. 11 or 11pt (PDF only)
+      --font <name>      an APA 7 approved font, setting family and size:
+                         arial, aptos, calibri, computer-modern, georgia,
+                         lucida-sans, times (PDF only)
+      --font-family <n>  override just the family (PDF only)
+      --font-size <n>    override just the size, e.g. 11 or 11pt (PDF only)
   -h, --help             show this message
 
 Defaults to apa and pdf. Font flags override the paper's front matter.
@@ -32,6 +36,7 @@ USAGE
 
 bib_arg=""
 no_bib=false
+font_preset=""
 font_family=""
 font_size=""
 positional=()
@@ -56,6 +61,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-bib|--no-bibliography)
       no_bib=true
+      shift
+      ;;
+    --font)
+      require_arg "$1" "${2:-}"
+      font_preset="$2"
+      shift 2
+      ;;
+    --font=*)
+      font_preset="${1#*=}"
       shift
       ;;
     --font-family)
@@ -164,16 +178,18 @@ args=(
 )
 [[ -n "$bib" ]] && args+=(--bibliography="$bib")
 
-# Command-line metadata overrides the paper's front matter.
-[[ -n "$font_family" ]] && args+=(--metadata=mainfont:"$font_family")
-[[ -n "$font_size" ]] && args+=(--metadata=fontsize:"$font_size")
+# Passed under rb- names so preamble.lua applies them after the paper's own
+# front matter rather than before it, which is what makes a flag win.
+[[ -n "$font_preset" ]] && args+=(--metadata=rb-font:"$font_preset")
+[[ -n "$font_family" ]] && args+=(--metadata=rb-mainfont:"$font_family")
+[[ -n "$font_size" ]] && args+=(--metadata=rb-fontsize:"$font_size")
 
 case "$fmt" in
   pdf)  args+=(--pdf-engine=tectonic) ;;
   tex)  args+=(--standalone) ;;
   docx)
-    if [[ -n "$font_family" || -n "$font_size" ]]; then
-      echo "warning: --font-family/--font-size affect PDF output only; ignored for docx" >&2
+    if [[ -n "$font_preset" || -n "$font_family" || -n "$font_size" ]]; then
+      echo "warning: font options affect PDF output only; ignored for docx" >&2
     fi
     ;;
   *)    echo "unknown format: $fmt (use pdf, docx or tex)" >&2; exit 1 ;;

@@ -31,8 +31,11 @@ build.sh [options] <paper.md> [apa|mla] [pdf|docx|tex] [output]
 
   -b, --bib <file>       bibliography to cite from
       --no-bib           build without a bibliography
-      --font-family <n>  override the paper's mainfont (PDF only)
-      --font-size <n>    override the paper's fontsize, e.g. 11 or 11pt (PDF only)
+      --font <name>      an APA 7 approved font, setting family and size:
+                         arial, aptos, calibri, computer-modern, georgia,
+                         lucida-sans, times (PDF only)
+      --font-family <n>  override just the family (PDF only)
+      --font-size <n>    override just the size, e.g. 11 or 11pt (PDF only)
   -h, --help             show this message
 ```
 
@@ -48,22 +51,51 @@ If no bibliography is found, the build exits with an error unless `--no-bib` is 
 
 ## Fonts
 
-Both templates set `fontsize: 12pt` and `mainfont: "Times New Roman"` in their front
-matter, which is what APA and MLA both expect. To build a one-off in something else,
-pass a flag:
+APA 7 approves six fonts, each at a particular size, and pairs the two: Georgia is
+approved at 11pt, not at 12pt. Pick one by name and get both.
+
+| `font:` | Family | Size |
+|---|---|---|
+| `times` | Times New Roman | 12pt |
+| `georgia` | Georgia | 11pt |
+| `computer-modern` | LaTeX's own (Latin Modern) | 10pt |
+| `calibri` | Calibri | 11pt |
+| `arial` | Arial | 11pt |
+| `aptos` | Aptos | 12pt |
+| `lucida-sans` | Lucida Sans Unicode | 10pt |
+
+The first three are serif, the rest sans serif. Both templates ship with
+`font: times`.
+
+```yaml
+---
+font: georgia
+---
+```
 
 ```sh
-./build.sh --font-family Georgia --font-size 11 ~/docs/essay.md mla
+./build.sh --font georgia ~/docs/essay.md mla
+```
+
+`--font` overrides whatever the paper asks for. To change one half, `--font-family`
+and `--font-size` override the family or the size on their own, and beat `--font`:
+
+```sh
+./build.sh --font arial --font-size 14 ~/docs/paper.md
 ```
 
 A bare number is read as points, so `--font-size 11` and `--font-size 11pt` are the
-same. Both flags override the paper's front matter for that build only, leaving the
-file untouched. Change the front matter instead when you want it to stick.
+same. Flags apply to that build only and leave the file untouched. In front matter,
+`font:` fills in only what the paper has not set itself, so an explicit `mainfont:`
+or `fontsize:` still wins.
 
-Two limits are worth knowing. The flags apply to PDF output only; `.docx` takes its
-formatting from a Word reference document, so the build warns and ignores them there.
-And `mainfont` is a XeLaTeX/LuaLaTeX feature. Builds run through tectonic, which is
-XeTeX, so this works, but `--font-family` would silently do nothing under pdflatex.
+Three limits are worth knowing. The options apply to PDF output only; `.docx` takes
+its formatting from a Word reference document, so the build warns and ignores them
+there. `mainfont` is a XeLaTeX/LuaLaTeX feature, and builds run through tectonic,
+which is XeTeX, so this works, but a family would silently do nothing under
+pdflatex. And the font has to be installed and registered with the operating
+system: Calibri, Aptos and Lucida Sans Unicode do not ship with macOS. A missing
+one fails the build with `Package fontspec Error: The font "X" cannot be found.`
 
 ## Front matter options
 

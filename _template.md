@@ -5,8 +5,7 @@ author: |
   Affiliation
 date: "Month D, YYYY"
 geometry: margin=1in
-fontsize: 12pt
-mainfont: "Times New Roman"
+font: times
 linestretch: 2
 indent: true
 ---

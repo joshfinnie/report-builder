@@ -177,6 +177,78 @@ else
   report pass "a missing lastname fails the build"
 fi
 
+echo "fonts"
+
+# Pandoc writes the size on its own line inside \documentclass[ ... ]{article}.
+class_size() {
+  sed -n '/documentclass\[/,/]{article}/p' "$1" | grep -oE '[0-9]+pt' | head -1
+}
+main_font() {
+  grep -o 'setmainfont\[\]{[^}]*}' "$1" | sed 's/.*{//;s/}//'
+}
+
+# APA 7 approves each font at a particular size, so a preset sets both.
+assert_font() {
+  local desc="$1" file="$2" want_family="$3" want_size="$4"
+  local got_family got_size
+  got_family="$(main_font "$file")"
+  got_size="$(class_size "$file")"
+  if [[ "$got_family" == "$want_family" && "$got_size" == "$want_size" ]]; then
+    report pass "$desc"
+  else
+    report fail "$desc" "got [${got_family:-none} / $got_size], wanted [${want_family:-none} / $want_size]"
+  fi
+}
+
+font_build() {
+  "$here/build.sh" --no-bib "${@:2}" "$work/font_base.md" apa tex "$work/$1.tex" >/dev/null 2>&1
+}
+
+# A paper naming its own font, as every paper written before presets does.
+paper font_base 'mainfont: "Times New Roman"
+fontsize: 12pt'
+build font_base apa
+assert_font "a paper's own mainfont is left alone" "$work/font_base.tex" "Times New Roman" "12pt"
+
+for pair in "arial:Arial:11pt" "aptos:Aptos:12pt" "calibri:Calibri:11pt" \
+            "georgia:Georgia:11pt" "times:Times New Roman:12pt" \
+            "lucida-sans:Lucida Sans Unicode:10pt"; do
+  name="${pair%%:*}"; rest="${pair#*:}"
+  family="${rest%:*}"; size="${rest##*:}"
+  font_build "font_$name" --font "$name"
+  assert_font "--font $name gives $family at $size" "$work/font_$name.tex" "$family" "$size"
+done
+
+# Computer Modern is not a system font; leaving mainfont unset is what picks it.
+font_build font_cm --font computer-modern
+assert_font "--font computer-modern leaves mainfont unset" "$work/font_cm.tex" "" "10pt"
+
+# A flag must beat the paper's own front matter. That is why build.sh routes
+# these through preamble.lua instead of passing them straight to pandoc, which
+# would apply them before the paper's metadata rather than after.
+font_build font_over --font arial
+assert_font "--font overrides the paper's mainfont" "$work/font_over.tex" "Arial" "11pt"
+font_build font_size --font arial --font-size 14
+assert_font "--font-size beats the preset's size" "$work/font_size.tex" "Arial" "14pt"
+font_build font_fam --font arial --font-family Optima
+assert_font "--font-family beats the preset's family" "$work/font_fam.tex" "Optima" "11pt"
+
+# In front matter a preset only fills what the paper left unset.
+paper font_fm 'font: georgia'
+build font_fm apa
+assert_font "front matter font: fills family and size" "$work/font_fm.tex" "Georgia" "11pt"
+
+paper font_both 'font: georgia
+mainfont: "Optima"'
+build font_both apa
+assert_font "an explicit mainfont wins over font:" "$work/font_both.tex" "Optima" "11pt"
+
+if font_build font_bad --font helvetica; then
+  report fail "an unapproved font name fails the build"
+else
+  report pass "an unapproved font name fails the build"
+fi
+
 echo "tables"
 
 table_rows="| Iterations | Correct route |

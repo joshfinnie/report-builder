@@ -20,6 +20,8 @@ Options a paper may set in its front matter:
   titlepage:  student | professional | false      (default student; true is
                                                    a synonym for student)
   shorttitle: the running head APA 7's professional title page carries
+  font:       one of the APA 7 approved fonts, which sets family and size
+              together (see FONTS below)
 
 Run this filter after the style filter, so `rb-extra-preamble` is already set.
 --]]
@@ -85,6 +87,77 @@ local function to_blocks(value)
   return { pandoc.RawBlock('latex', stringify(value)) }
 end
 
+-- The fonts APA 7 allows, each with the size it is approved at. A paper picks
+-- one by name with `font:` and gets both, since APA pairs them: Georgia is
+-- approved at 11pt, not at 12pt.
+--
+-- `family = false` means the style uses LaTeX's own font. Computer Modern is
+-- not a system font, and leaving mainfont unset is what selects it.
+local FONTS = {
+  arial             = { family = 'Arial',               size = '11pt' },
+  aptos             = { family = 'Aptos',               size = '12pt' },
+  calibri           = { family = 'Calibri',             size = '11pt' },
+  ['lucida-sans']   = { family = 'Lucida Sans Unicode', size = '10pt' },
+  georgia           = { family = 'Georgia',             size = '11pt' },
+  times             = { family = 'Times New Roman',     size = '12pt' },
+  ['computer-modern'] = { family = false,               size = '10pt' },
+}
+
+local function font_names()
+  local names = {}
+  for name in pairs(FONTS) do table.insert(names, name) end
+  table.sort(names)
+  return table.concat(names, ', ')
+end
+
+local function preset(value, source)
+  local name = as_text(value):lower()
+  local found = FONTS[name]
+  if found == nil then
+    fail(source .. ': unknown font "' .. name .. '" (use one of: ' .. font_names() .. ')')
+  end
+  return found
+end
+
+-- Resolve the font, most specific last:
+--
+--   1. `font:` in the paper, which fills in whatever the paper did not set
+--      itself, so an explicit mainfont: or fontsize: still wins
+--   2. --font on the command line, which replaces both
+--   3. --font-family / --font-size, which replace one each
+--
+-- build.sh passes the command-line forms under rb- names precisely so they can
+-- be applied after the paper's own metadata rather than before it.
+local function apply_font(meta)
+  if meta.font ~= nil then
+    local chosen = preset(meta.font, 'font')
+    if meta.mainfont == nil and chosen.family then
+      meta.mainfont = pandoc.MetaString(chosen.family)
+    end
+    if meta.fontsize == nil then
+      meta.fontsize = pandoc.MetaString(chosen.size)
+    end
+  end
+
+  if meta['rb-font'] ~= nil then
+    local chosen = preset(meta['rb-font'], '--font')
+    meta.mainfont = chosen.family and pandoc.MetaString(chosen.family) or nil
+    meta.fontsize = pandoc.MetaString(chosen.size)
+  end
+
+  if meta['rb-mainfont'] ~= nil then
+    meta.mainfont = pandoc.MetaString(as_text(meta['rb-mainfont']))
+  end
+  if meta['rb-fontsize'] ~= nil then
+    meta.fontsize = pandoc.MetaString(as_text(meta['rb-fontsize']))
+  end
+
+  meta['rb-font'] = nil
+  meta['rb-mainfont'] = nil
+  meta['rb-fontsize'] = nil
+  return meta
+end
+
 -- LaTeX specials that could appear in a title or short title.
 local function latex_escape(text)
   return (text:gsub('[\\{}#$%%&_~^]', {
@@ -133,6 +206,8 @@ local function switch_defs(meta)
 end
 
 function Meta(meta)
+  meta = apply_font(meta)
+
   local path = meta['rb-style-preamble']
   if path == nil then return meta end
 
