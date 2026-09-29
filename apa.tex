@@ -61,12 +61,18 @@
 %
 % A table taller than a page still splits, and longtable repeats its header
 % row, which is what APA and MLA both ask for.
+%
+% \Needspace* rather than \needspace. The lowercase form reserves space by
+% inserting stretchable glue and a penalty, and next to longtable, which does
+% its own page breaking, it misjudges the room left: a 96pt request broke a
+% page with 385pt still free, stranding a mostly empty page. \Needspace*
+% measures the page properly and does not.
 \newlength{\rbBodyLine}
 \newcommand{\rbTableNeed}[2]{%
   \setlength{\rbBodyLine}{\baselineskip}%
   \begingroup
     \small\singlespacing
-    \needspace{\dimexpr #2\rbBodyLine + #1\baselineskip\relax}%
+    \Needspace*{\dimexpr #2\rbBodyLine + #1\baselineskip\relax}%
   \endgroup}
 
 % APA 7 title page. Everything 12pt and double-spaced: title in bold three lines

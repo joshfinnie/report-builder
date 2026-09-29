@@ -472,6 +472,36 @@ $short_rows"
     report fail "a short table near a page break stays whole" "build failed"
   fi
 
+  # A reservation must not break a page that had room for the table. The
+  # lowercase \needspace did exactly that next to longtable: it misjudged the
+  # space left and stranded a page with most of it unused. Here 6.5in of
+  # \vspace leaves about 2.5in, comfortably more than this table needs, so the
+  # table belongs on page 2 with the line introducing it, not on page 3.
+  paper geo_strand "geometry: margin=1in" "Intro.
+
+\`\`\`{=latex}
+\\vspace*{6.5in}
+\`\`\`
+
+A short line of text before the table.
+
+$short_rows
+
+Text after the table."
+  if render geo_strand apa; then
+    page="$(pdftotext -layout "$work/geo_strand.pdf" - \
+      | awk -v RS='\f' '{ n = split($0, L, "\n");
+          for (i = 1; i <= n; i++) if (L[i] ~ /^[[:space:]]*Iterations/) { print NR; exit } }')"
+    if [[ "$page" == "2" ]]; then
+      report pass "a table is not pushed off a page that had room"
+    else
+      report fail "a table is not pushed off a page that had room" \
+        "the table landed on page ${page:-none}, expected page 2"
+    fi
+  else
+    report fail "a table is not pushed off a page that had room" "build failed"
+  fi
+
   # The converse: a table too tall for a page must still break, or its rows
   # fall off the end. longtable repeats the header, which is what we look for.
   long_rows="| Iterations | Correct route |
