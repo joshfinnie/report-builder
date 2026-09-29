@@ -14,8 +14,15 @@ trap 'rm -rf "$work"' EXIT
 
 pass=0
 fail=0
+skip=0
 
 report() {
+  if [[ "$1" == skip ]]; then
+    skip=$((skip + 1))
+    printf '  skip  %s\n' "$2"
+    [[ -n "${3:-}" ]] && printf '        %s\n' "$3"
+    return
+  fi
   if [[ "$1" == pass ]]; then
     pass=$((pass + 1))
     printf '  ok    %s\n' "$2"
@@ -323,6 +330,136 @@ for extra in "" "titlepage: professional" "pagenumber: bottomright"; do
     || report fail "mla renders with [${extra:-defaults}]"
 done
 
+# Rendered-geometry checks.
+#
+# Everything above asserts the mechanism: that the right macro, option or
+# package reaches the preamble. None of it asserts the outcome on the page, and
+# the two bugs these cover were both silent. A code line running clean off the
+# paper produces no Overfull warning at all, and a table splitting across pages
+# is perfectly valid LaTeX. Both were found by measuring a rendered PDF.
+#
+# These need poppler for pdftotext. Without it they are skipped, so the suite
+# still runs on pandoc and tectonic alone.
+echo "rendered output"
+
+# How many pages carry a line matching a pattern. longtable repeats a table's
+# header row on every continuation page, so more than one page means it split.
+pages_matching() {
+  pdftotext -layout "$1" - | awk -v RS='\f' -v pat="$2" '
+    { n = split($0, L, "\n"); for (i = 1; i <= n; i++) if (L[i] ~ pat) { hit++; break } }
+    END { print hit + 0 }'
+}
+
+# The right-most point any word reaches, in PDF points.
+max_right_edge() {
+  pdftotext -bbox "$1" - 2>/dev/null \
+    | grep -o 'xMax="[0-9.]*"' | grep -o '[0-9.]*' | sort -g | tail -1
+}
+
+if ! command -v pdftotext >/dev/null 2>&1; then
+  report skip "a short table near a page break stays whole" "pdftotext not installed"
+  report skip "a long table still splits and repeats its header" "pdftotext not installed"
+  report skip "a long code line stays inside the right margin" "pdftotext not installed"
+  report skip "ordinary prose stays inside the right margin" "pdftotext not installed"
+else
+  # Letter paper is 612pt wide; a 1in margin puts the text edge at 540pt.
+  # A point of slack absorbs the rules booktabs draws to the column edge.
+  edge=541
+
+  short_rows="| Iterations | Correct route | Did not terminate |
+|---|---|---|"
+  for n in 1 2 3 4 5 6 7 8; do
+    short_rows="$short_rows
+| $n | $n/200 | ok |"
+  done
+
+  # \vspace leaves room for the header and a couple of rows but not the whole
+  # table, which is what makes this a real test: without a reservation the
+  # table starts on this page and spills onto the next. Push much further and
+  # the \vspace itself overflows, so the table starts on a fresh page and
+  # would pass no matter what. The splitting window here is 7.0in to 7.5in.
+  #
+  # The table is unlabelled on purpose. That is the case that used to reserve
+  # no space at all, and the one that showed up in a real paper.
+  paper geo_split "geometry: margin=1in" "Body text.
+
+\`\`\`{=latex}
+\\vspace*{7.25in}
+\`\`\`
+
+$short_rows"
+  if render geo_split apa; then
+    hit="$(pages_matching "$work/geo_split.pdf" '^[[:space:]]*Iterations')"
+    if [[ "$hit" == "1" ]]; then
+      report pass "a short table near a page break stays whole"
+    else
+      report fail "a short table near a page break stays whole" \
+        "its header row appears on $hit pages, so the table split"
+    fi
+  else
+    report fail "a short table near a page break stays whole" "build failed"
+  fi
+
+  # The converse: a table too tall for a page must still break, or its rows
+  # fall off the end. longtable repeats the header, which is what we look for.
+  long_rows="| Iterations | Correct route |
+|---|---|"
+  for n in $(seq 1 60); do
+    long_rows="$long_rows
+| $n | $n/200 |"
+  done
+  paper geo_long "geometry: margin=1in" "Body text.
+
+$long_rows"
+  if render geo_long apa; then
+    hit="$(pages_matching "$work/geo_long.pdf" '^[[:space:]]*Iterations')"
+    if [[ "$hit" -gt 1 ]]; then
+      report pass "a long table still splits and repeats its header"
+    else
+      report fail "a long table still splits and repeats its header" \
+        "its header row appears on $hit page(s); rows may have been dropped"
+    fi
+  else
+    report fail "a long table still splits and repeats its header" "build failed"
+  fi
+
+  fence='```'
+  paper geo_code "geometry: margin=1in" "Body text.
+
+${fence}python
+TD = rewards_new[current_state, next_state] + gamma * Q[next_state, np.argmax(Q[next_state,])] - Q[current_state, next_state]
+${fence}"
+  if render geo_code apa; then
+    got="$(max_right_edge "$work/geo_code.pdf")"
+    if awk -v g="$got" -v e="$edge" 'BEGIN { exit !(g <= e) }'; then
+      report pass "a long code line stays inside the right margin"
+    else
+      report fail "a long code line stays inside the right margin" \
+        "text reaches ${got}pt, past the ${edge}pt margin"
+    fi
+  else
+    report fail "a long code line stays inside the right margin" "build failed"
+  fi
+
+  paper geo_prose "geometry: margin=1in" "Ordinary prose with no code and no tables at all, long enough to wrap across several lines of the text block so the measurement means something."
+  if render geo_prose apa; then
+    got="$(max_right_edge "$work/geo_prose.pdf")"
+    if awk -v g="$got" -v e="$edge" 'BEGIN { exit !(g <= e) }'; then
+      report pass "ordinary prose stays inside the right margin"
+    else
+      report fail "ordinary prose stays inside the right margin" \
+        "text reaches ${got}pt, past the ${edge}pt margin"
+    fi
+  else
+    report fail "ordinary prose stays inside the right margin" "build failed"
+  fi
+fi
+
+
 echo
-printf '%d passed, %d failed\n' "$pass" "$fail"
+if [[ "$skip" -gt 0 ]]; then
+  printf '%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
+else
+  printf '%d passed, %d failed\n' "$pass" "$fail"
+fi
 [[ "$fail" -eq 0 ]]

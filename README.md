@@ -7,7 +7,12 @@ BibTeX bibliography. Write the document, run one command, get a correctly format
 
 ```sh
 brew install pandoc tectonic
+brew install poppler          # optional, for the rendered-output tests
 ```
+
+Run `./test.sh` to check a change. Poppler is only needed for the tests that
+measure a rendered PDF; without it those are reported as skipped and the rest
+still run.
 
 ## Use
 
@@ -234,4 +239,4 @@ column:
 | `mla.csl` | MLA 9th edition citation style, from the CSL project (CC BY-SA 3.0) |
 | `_template_mla.md` | Skeleton MLA paper with the heading block and the table/figure patterns |
 | `references.bib` | Starter bibliography; keep a per-paper copy beside each paper |
-| `test.sh` | Regression tests for the preamble and the front-matter options |
+| `test.sh` | Regression tests for the preamble, the front-matter options and the rendered page |
